@@ -1,0 +1,410 @@
+{
+  "entities": {
+    "UserProfile": {
+      "title": "UserProfile",
+      "description": "User profile with role-based access control for Netcare Nepal ERP",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "maxLength": 128 },
+        "fullName": { "type": "string", "maxLength": 100 },
+        "email": { "type": "string", "format": "email", "maxLength": 128 },
+        "phone": { "type": "string", "maxLength": 30 },
+        "role": { "type": "string", "enum": ["CEO", "OPERATIONS_MANAGER", "OFFICE_STAFF", "FIELD_TECHNICIAN", "DEALER"] },
+        "status": { "type": "string", "enum": ["active", "inactive", "suspended"] },
+        "assignedDealerId": { "type": "string", "maxLength": 128 },
+        "department": { "type": "string", "maxLength": 100 },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "fullName", "email", "role", "status"]
+    },
+    "Customer": {
+      "title": "Customer",
+      "description": "Bus operator or transport company client in Nepal",
+      "type": "object",
+      "properties": {
+        "customerId": { "type": "string", "maxLength": 128 },
+        "fullName": { "type": "string", "maxLength": 100 },
+        "companyName": { "type": "string", "maxLength": 150 },
+        "phone": { "type": "string", "maxLength": 30 },
+        "whatsappNumber": { "type": "string", "maxLength": 30 },
+        "busRegistrationNumber": { "type": "string", "maxLength": 50 },
+        "busRoute": { "type": "string", "maxLength": 150 },
+        "busPark": { "type": "string", "maxLength": 100 },
+        "district": { "type": "string", "maxLength": 100 },
+        "province": { "type": "string", "maxLength": 100 },
+        "address": { "type": "string", "maxLength": 200 },
+        "status": { "type": "string", "enum": ["active", "suspended", "prospective", "inactive", "terminated"] },
+        "registrationDate": { "type": "string" },
+        "assignedStaffId": { "type": "string", "maxLength": 128 },
+        "assignedStaffName": { "type": "string", "maxLength": 100 },
+        "assignedDealerId": { "type": "string", "maxLength": 128 },
+        "assignedDealerName": { "type": "string", "maxLength": 100 },
+        "remarks": { "type": "string", "maxLength": 500 },
+        "contactPerson": { "type": "string", "maxLength": 100 },
+        "email": { "type": "string", "format": "email", "maxLength": 128 },
+        "panNumber": { "type": "string", "maxLength": 30 },
+        "city": { "type": "string", "maxLength": 100 },
+        "fleetSize": { "type": "number" },
+        "services": { "type": "string", "maxLength": 200 },
+        "dealerId": { "type": "string", "maxLength": 128 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["customerId", "companyName", "fullName", "phone", "status"]
+    },
+    "Subscription": {
+      "title": "Subscription",
+      "description": "Active recurring service plan for Bus WiFi, GPS tracking or CCTV",
+      "type": "object",
+      "properties": {
+        "subscriptionId": { "type": "string", "maxLength": 128 },
+        "customerId": { "type": "string", "maxLength": 128 },
+        "customerName": { "type": "string", "maxLength": 150 },
+        "vehicleNumber": { "type": "string", "maxLength": 50 },
+        "serviceType": { "type": "string", "enum": ["wifi", "gps", "cctv", "combo_all"] },
+        "planName": { "type": "string", "maxLength": 100 },
+        "billingCycle": { "type": "string", "enum": ["monthly", "quarterly", "semi_annual", "annual"] },
+        "feeNpr": { "type": "number" },
+        "startDate": { "type": "string", "format": "date-time" },
+        "expiryDate": { "type": "string", "format": "date-time" },
+        "autoRenew": { "type": "boolean" },
+        "simNumber": { "type": "string", "maxLength": 50 },
+        "status": { "type": "string", "enum": ["active", "expired", "pending_renewal", "suspended"] }
+      },
+      "required": ["subscriptionId", "customerId", "customerName", "vehicleNumber", "serviceType", "feeNpr", "status"]
+    },
+    "InventoryItem": {
+      "title": "InventoryItem",
+      "description": "Hardware tracking for Bus Routers, GPS units, CCTV MDVRs and SIMs",
+      "type": "object",
+      "properties": {
+        "itemId": { "type": "string", "maxLength": 128 },
+        "itemName": { "type": "string", "maxLength": 150 },
+        "category": { "type": "string", "enum": ["wifi_router", "gps_tracker", "cctv_mdvr", "dashcam", "m2m_sim", "antenna_cable", "spare_part"] },
+        "brandModel": { "type": "string", "maxLength": 100 },
+        "serialNumber": { "type": "string", "maxLength": 100 },
+        "imeiOrImsi": { "type": "string", "maxLength": 100 },
+        "costNpr": { "type": "number" },
+        "sellingNpr": { "type": "number" },
+        "status": { "type": "string", "enum": ["in_stock", "assigned_vehicle", "under_repair", "faulty", "decommissioned"] },
+        "location": { "type": "string", "maxLength": 100 },
+        "assignedCustomer": { "type": "string", "maxLength": 150 },
+        "assignedVehicle": { "type": "string", "maxLength": 50 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["itemId", "itemName", "category", "serialNumber", "status", "costNpr"]
+    },
+    "WorkOrder": {
+      "title": "WorkOrder",
+      "description": "Installation, repair and field maintenance service ticket",
+      "type": "object",
+      "properties": {
+        "orderId": { "type": "string", "maxLength": 128 },
+        "title": { "type": "string", "maxLength": 150 },
+        "customerId": { "type": "string", "maxLength": 128 },
+        "customerName": { "type": "string", "maxLength": 150 },
+        "vehicleNumber": { "type": "string", "maxLength": 50 },
+        "serviceType": { "type": "string", "enum": ["wifi", "gps", "cctv", "combo_all", "sim_replacement"] },
+        "type": { "type": "string", "enum": ["installation", "repair", "inspection", "device_upgrade"] },
+        "priority": { "type": "string", "enum": ["low", "medium", "high", "critical"] },
+        "status": { "type": "string", "enum": ["pending", "assigned", "in_progress", "completed", "cancelled"] },
+        "assignedTechnicianId": { "type": "string", "maxLength": 128 },
+        "assignedTechnicianName": { "type": "string", "maxLength": 100 },
+        "scheduledDate": { "type": "string", "format": "date-time" },
+        "completedDate": { "type": "string", "format": "date-time" },
+        "location": { "type": "string", "maxLength": 150 },
+        "description": { "type": "string", "maxLength": 500 },
+        "resolutionNotes": { "type": "string", "maxLength": 500 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["orderId", "title", "customerId", "customerName", "vehicleNumber", "type", "priority", "status"]
+    },
+    "Dealer": {
+      "title": "Dealer",
+      "description": "Regional partner or sales franchisee in Nepal",
+      "type": "object",
+      "properties": {
+        "dealerId": { "type": "string", "maxLength": 128 },
+        "dealerName": { "type": "string", "maxLength": 150 },
+        "contactPerson": { "type": "string", "maxLength": 100 },
+        "phone": { "type": "string", "maxLength": 30 },
+        "email": { "type": "string", "format": "email", "maxLength": 128 },
+        "territory": { "type": "string", "maxLength": 100 },
+        "commissionRatePercent": { "type": "number" },
+        "totalSalesNpr": { "type": "number" },
+        "walletBalanceNpr": { "type": "number" },
+        "status": { "type": "string", "enum": ["active", "probation", "suspended"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["dealerId", "dealerName", "contactPerson", "territory", "commissionRatePercent", "status"]
+    },
+    "Invoice": {
+      "title": "Invoice",
+      "description": "Billing invoice for subscriptions, hardware sales and service fees",
+      "type": "object",
+      "properties": {
+        "invoiceId": { "type": "string", "maxLength": 128 },
+        "invoiceNumber": { "type": "string", "maxLength": 50 },
+        "customerId": { "type": "string", "maxLength": 128 },
+        "customerName": { "type": "string", "maxLength": 150 },
+        "amountNpr": { "type": "number" },
+        "vatAmountNpr": { "type": "number" },
+        "totalNpr": { "type": "number" },
+        "dueDate": { "type": "string", "format": "date-time" },
+        "issuedDate": { "type": "string", "format": "date-time" },
+        "status": { "type": "string", "enum": ["unpaid", "paid", "partially_paid", "overdue", "cancelled"] },
+        "paymentMethod": { "type": "string", "maxLength": 50 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["invoiceId", "invoiceNumber", "customerId", "customerName", "amountNpr", "totalNpr", "status"]
+    },
+    "Expense": {
+      "title": "Expense",
+      "description": "Operational expenses such as SIM top-ups, technician allowances and warehouse rent",
+      "type": "object",
+      "properties": {
+        "expenseId": { "type": "string", "maxLength": 128 },
+        "title": { "type": "string", "maxLength": 150 },
+        "category": { "type": "string", "enum": ["sim_data_packs", "hardware_import", "technician_travel", "office_utilities", "marketing", "repairs_maintenance"] },
+        "amountNpr": { "type": "number" },
+        "paidTo": { "type": "string", "maxLength": 150 },
+        "paymentDate": { "type": "string", "format": "date-time" },
+        "approvedBy": { "type": "string", "maxLength": 100 },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["expenseId", "title", "category", "amountNpr", "paidTo"]
+    },
+    "AuditLog": {
+      "title": "AuditLog",
+      "description": "Immutable security and operational event audit trail",
+      "type": "object",
+      "properties": {
+        "logId": { "type": "string", "maxLength": 128 },
+        "actorId": { "type": "string", "maxLength": 128 },
+        "actorName": { "type": "string", "maxLength": 100 },
+        "actorRole": { "type": "string", "maxLength": 50 },
+        "action": { "type": "string", "maxLength": 100 },
+        "module": { "type": "string", "maxLength": 50 },
+        "details": { "type": "string", "maxLength": 500 },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["logId", "actorId", "action", "module", "timestamp"]
+    },
+    "StockMovement": {
+      "title": "StockMovement",
+      "description": "Permanent audit log of inventory stock receipts, issues, technician allocations and job deductions",
+      "type": "object",
+      "properties": {
+        "movementNumber": { "type": "string", "maxLength": 100 },
+        "movementType": { "type": "string", "maxLength": 50 },
+        "itemId": { "type": "string", "maxLength": 128 },
+        "itemName": { "type": "string", "maxLength": 150 },
+        "sku": { "type": "string", "maxLength": 100 },
+        "category": { "type": "string", "maxLength": 100 },
+        "quantity": { "type": "number" },
+        "previousStock": { "type": "number" },
+        "newStock": { "type": "number" },
+        "unitCostNpr": { "type": "number" },
+        "totalCostNpr": { "type": "number" },
+        "fromLocation": { "type": "string", "maxLength": 150 },
+        "toLocation": { "type": "string", "maxLength": 150 },
+        "reason": { "type": "string", "maxLength": 300 },
+        "authorizedBy": { "type": "string", "maxLength": 100 },
+        "actorId": { "type": "string", "maxLength": 128 },
+        "actorName": { "type": "string", "maxLength": 100 },
+        "actorRole": { "type": "string", "maxLength": 50 },
+        "timestamp": { "type": "string", "format": "date-time" }
+      },
+      "required": ["movementNumber", "movementType", "itemId", "itemName", "quantity", "actorId"]
+    },
+    "SubscriptionPackage": {
+      "title": "SubscriptionPackage",
+      "description": "Configurable single and dual network internet package tiers for bus WiFi",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "packageName": { "type": "string", "maxLength": 150 },
+        "networkType": { "type": "string", "enum": ["NTC", "Ncell", "Dual Network"] },
+        "durationMonths": { "type": "number" },
+        "durationLabel": { "type": "string", "maxLength": 100 },
+        "sellingPriceNpr": { "type": "number" },
+        "dataAllowance": { "type": "string", "maxLength": 100 },
+        "speed": { "type": "string", "maxLength": 100 },
+        "supportedDevices": { "type": "number" },
+        "description": { "type": "string", "maxLength": 500 },
+        "status": { "type": "string", "enum": ["active", "inactive"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "packageName", "networkType", "durationMonths", "sellingPriceNpr", "status"]
+    },
+    "Supplier": {
+      "title": "Supplier",
+      "description": "Hardware and telecom vendor for routers, antennas, SIMs and spare parts",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "supplierCode": { "type": "string", "maxLength": 50 },
+        "name": { "type": "string", "maxLength": 150 },
+        "contactPerson": { "type": "string", "maxLength": 100 },
+        "phone": { "type": "string", "maxLength": 30 },
+        "email": { "type": "string", "format": "email", "maxLength": 128 },
+        "address": { "type": "string", "maxLength": 200 },
+        "taxPanNumber": { "type": "string", "maxLength": 50 },
+        "paymentTerms": { "type": "string", "maxLength": 100 },
+        "rating": { "type": "number" },
+        "status": { "type": "string", "enum": ["active", "inactive"] },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "supplierCode", "name", "contactPerson", "phone", "status"]
+    },
+    "DealerStockRequest": {
+      "title": "DealerStockRequest",
+      "description": "Stock replenishment request submitted by regional dealer to Netcare HQ",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "dealerId": { "type": "string", "maxLength": 128 },
+        "dealerName": { "type": "string", "maxLength": 150 },
+        "itemId": { "type": "string", "maxLength": 128 },
+        "itemName": { "type": "string", "maxLength": 150 },
+        "sku": { "type": "string", "maxLength": 100 },
+        "requestedQuantity": { "type": "number" },
+        "urgency": { "type": "string", "enum": ["Normal", "Urgent", "Critical"] },
+        "reason": { "type": "string", "maxLength": 300 },
+        "shippingAddress": { "type": "string", "maxLength": 200 },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected", "dispatched", "received"] },
+        "requestedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "dealerId", "itemId", "requestedQuantity", "urgency", "status"]
+    },
+    "DealerRenewalRequest": {
+      "title": "DealerRenewalRequest",
+      "description": "Subscription renewal request submitted by regional dealer for customer bus",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "dealerId": { "type": "string", "maxLength": 128 },
+        "dealerName": { "type": "string", "maxLength": 150 },
+        "customerId": { "type": "string", "maxLength": 128 },
+        "customerName": { "type": "string", "maxLength": 150 },
+        "busNumber": { "type": "string", "maxLength": 50 },
+        "subscriptionId": { "type": "string", "maxLength": 128 },
+        "packageName": { "type": "string", "maxLength": 150 },
+        "durationMonths": { "type": "number" },
+        "finalAmountNpr": { "type": "number" },
+        "commissionEarnedNpr": { "type": "number" },
+        "paymentMethod": { "type": "string", "maxLength": 50 },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "submittedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "dealerId", "customerId", "busNumber", "subscriptionId", "finalAmountNpr", "status"]
+    },
+    "DealerCommissionRecord": {
+      "title": "DealerCommissionRecord",
+      "description": "Chronological audit ledger of dealer earned commissions and wallet disbursements",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "dealerId": { "type": "string", "maxLength": 128 },
+        "dealerName": { "type": "string", "maxLength": 150 },
+        "type": { "type": "string", "enum": ["hardware_sale", "new_subscription", "subscription_renewal", "payout_disbursement"] },
+        "referenceId": { "type": "string", "maxLength": 128 },
+        "saleAmountNpr": { "type": "number" },
+        "commissionRatePercent": { "type": "number" },
+        "commissionAmountNpr": { "type": "number" },
+        "status": { "type": "string", "enum": ["accrued", "paid", "pending"] },
+        "date": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "dealerId", "type", "referenceId", "commissionAmountNpr", "status"]
+    },
+    "IncomeTransaction": {
+      "title": "IncomeTransaction",
+      "description": "Permanent cash receipts and collected income audit transactions",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "transactionNumber": { "type": "string", "maxLength": 100 },
+        "category": { "type": "string", "enum": ["new_subscriptions", "subscription_renewals", "wifi_equipment_sales", "cctv_sales", "gps_sales", "installation_charges", "other_income"] },
+        "amountNpr": { "type": "number" },
+        "paymentMethod": { "type": "string" },
+        "paymentReference": { "type": "string", "maxLength": 100 },
+        "date": { "type": "string", "format": "date-time" },
+        "customerId": { "type": "string", "maxLength": 128 },
+        "customerName": { "type": "string", "maxLength": 150 },
+        "busNumber": { "type": "string", "maxLength": 50 },
+        "invoiceId": { "type": "string", "maxLength": 128 },
+        "recordedBy": { "type": "string", "maxLength": 100 },
+        "notes": { "type": "string", "maxLength": 500 },
+        "isReversal": { "type": "boolean" },
+        "reversedTransactionId": { "type": "string", "maxLength": 128 }
+      },
+      "required": ["id", "transactionNumber", "category", "amountNpr", "paymentMethod", "date", "recordedBy"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "UserProfile",
+      "description": "User profiles with strict RBAC credentials and activation status"
+    },
+    "/customers/{customerId}": {
+      "schema": "Customer",
+      "description": "Transport company and bus operator clients"
+    },
+    "/packages/{packageId}": {
+      "schema": "SubscriptionPackage",
+      "description": "Bus single and dual network internet packages"
+    },
+    "/subscriptions/{subscriptionId}": {
+      "schema": "Subscription",
+      "description": "Bus WiFi, GPS and CCTV service subscriptions"
+    },
+    "/inventory/{itemId}": {
+      "schema": "InventoryItem",
+      "description": "Hardware devices, SIM cards and spares inventory"
+    },
+    "/stockMovements/{movementId}": {
+      "schema": "StockMovement",
+      "description": "Stock deduction and hardware allocation movement history"
+    },
+    "/suppliers/{supplierId}": {
+      "schema": "Supplier",
+      "description": "Hardware suppliers and vendors"
+    },
+    "/workOrders/{orderId}": {
+      "schema": "WorkOrder",
+      "description": "Field installation and technician repair tickets"
+    },
+    "/dealers/{dealerId}": {
+      "schema": "Dealer",
+      "description": "Regional dealer network and franchise partners"
+    },
+    "/dealerStockRequests/{requestId}": {
+      "schema": "DealerStockRequest",
+      "description": "Dealer inventory replenishment requests"
+    },
+    "/dealerRenewalRequests/{requestId}": {
+      "schema": "DealerRenewalRequest",
+      "description": "Dealer customer bus subscription renewal submissions"
+    },
+    "/dealerCommissions/{commissionId}": {
+      "schema": "DealerCommissionRecord",
+      "description": "Dealer sales commissions and wallet ledger"
+    },
+    "/invoices/{invoiceId}": {
+      "schema": "Invoice",
+      "description": "Billing invoices and payment tracking"
+    },
+    "/incomeTransactions/{transactionId}": {
+      "schema": "IncomeTransaction",
+      "description": "Permanent cash receipts and collected income audit transactions"
+    },
+    "/expenses/{expenseId}": {
+      "schema": "Expense",
+      "description": "Company operational expenses"
+    },
+    "/auditLogs/{logId}": {
+      "schema": "AuditLog",
+      "description": "Immutable audit events"
+    }
+  }
+}

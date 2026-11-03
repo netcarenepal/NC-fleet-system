@@ -1,0 +1,6 @@
+{
+  "name": "NETCARE NEPAL ERP",
+  "description": "Enterprise-grade cloud-based business management and ERP for Netcare Nepal Pvt. Ltd. (Bus WiFi, CCTV, GPS and Connectivity Services).",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,287 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Default-deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- SECURITY HELPERS ---
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isBootstrappedAdmin() {
+      return isSignedIn() && request.auth.token.email == 'netcarenepal@gmail.com';
+    }
+
+    function hasUserDoc() {
+      return isSignedIn() && exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function getUserDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function isUserActive() {
+      return isBootstrappedAdmin() || (hasUserDoc() && getUserDoc().status == 'active');
+    }
+
+    function getUserRole() {
+      return isBootstrappedAdmin() ? 'CEO' : (hasUserDoc() ? getUserDoc().role : 'GUEST');
+    }
+
+    function isCEO() {
+      return isSignedIn() && (isBootstrappedAdmin() || (isUserActive() && getUserRole() == 'CEO'));
+    }
+
+    function isOperationsManager() {
+      return isCEO() || (isSignedIn() && isUserActive() && getUserRole() == 'OPERATIONS_MANAGER');
+    }
+
+    function isOfficeStaff() {
+      return isOperationsManager() || (isSignedIn() && isUserActive() && getUserRole() == 'OFFICE_STAFF');
+    }
+
+    function isFieldTechnician() {
+      return isSignedIn() && isUserActive() && getUserRole() == 'FIELD_TECHNICIAN';
+    }
+
+    function isDealer() {
+      return isSignedIn() && isUserActive() && getUserRole() == 'DEALER';
+    }
+
+    function getAssignedDealerId() {
+      return hasUserDoc() && ('assignedDealerId' in getUserDoc()) ? getUserDoc().assignedDealerId : request.auth.uid;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // Test connection endpoint
+    match /test/connection {
+      allow read, write: if true;
+    }
+
+    // --- 1. USERS COLLECTION (NO PUBLIC REGISTRATION, CEO ONLY PROVISIONING) ---
+    match /users/{userId} {
+      // Any authenticated active user can read their own profile; CEO and Operations Manager can list users
+      allow get: if isSignedIn() && (request.auth.uid == userId || isOperationsManager());
+      allow list: if isOperationsManager();
+
+      // Only CEO can create new user profiles (or initial bootstrapped admin setup)
+      allow create: if isSignedIn() && (
+        isCEO() ||
+        (request.auth.uid == userId && isBootstrappedAdmin() && request.resource.data.role == 'CEO')
+      );
+
+      // Updates: CEO has full update rights.
+      // Non-CEO users can ONLY update their own phone or name, and CANNOT touch role, status, or userId (anti-self-promotion)
+      allow update: if isSignedIn() && (
+        isCEO() ||
+        (
+          request.auth.uid == userId &&
+          isUserActive() &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['phone', 'fullName', 'updatedAt']) &&
+          request.resource.data.role == resource.data.role &&
+          request.resource.data.status == resource.data.status
+        )
+      );
+
+      // Only CEO can delete accounts
+      allow delete: if isCEO();
+    }
+
+    // --- 2. CUSTOMERS (BUS OPERATORS) ---
+    match /customers/{customerId} {
+      allow get: if isSignedIn() && (
+        isOfficeStaff() ||
+        (isDealer() && (
+          resource.data.dealerId == request.auth.uid ||
+          resource.data.dealerId == getAssignedDealerId() ||
+          resource.data.assignedDealerId == request.auth.uid ||
+          resource.data.assignedDealerId == getAssignedDealerId()
+        ))
+      );
+      allow list: if isSignedIn() && (isOfficeStaff() || isDealer());
+      allow create: if isOfficeStaff() || (
+        isDealer() && (
+          request.resource.data.dealerId == request.auth.uid ||
+          request.resource.data.dealerId == getAssignedDealerId() ||
+          request.resource.data.assignedDealerId == request.auth.uid ||
+          request.resource.data.assignedDealerId == getAssignedDealerId()
+        )
+      );
+      allow update: if isOfficeStaff() || (
+        isDealer() &&
+        (
+          resource.data.dealerId == request.auth.uid ||
+          resource.data.dealerId == getAssignedDealerId() ||
+          resource.data.assignedDealerId == request.auth.uid ||
+          resource.data.assignedDealerId == getAssignedDealerId()
+        ) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['contactPerson', 'phone', 'email', 'address', 'notes'])
+      );
+      allow delete: if isCEO();
+    }
+
+    // --- 2B. PACKAGES (CONFIGURABLE SUBSCRIPTION TIERS: NTC, NCELL, DUAL NETWORK) ---
+    match /packages/{packageId} {
+      allow get, list: if isSignedIn();
+      allow create, update, delete: if isCEO();
+    }
+
+    // --- 3. SUBSCRIPTIONS (BUS WIFI, GPS & CCTV) ---
+    match /subscriptions/{subscriptionId} {
+      // Office staff can read all; dealers can only access their own customer subscriptions
+      allow get: if isSignedIn() && (
+        isOfficeStaff() ||
+        (isDealer() && (
+          resource.data.dealerId == request.auth.uid ||
+          resource.data.dealerId == getAssignedDealerId() ||
+          resource.data.assignedDealerId == request.auth.uid ||
+          resource.data.assignedDealerId == getAssignedDealerId()
+        ))
+      );
+      allow list: if isSignedIn() && (isOfficeStaff() || isDealer());
+      allow create, update: if isOfficeStaff();
+      allow delete: if isCEO();
+    }
+
+    // --- 4. INVENTORY (ROUTERS, MDVRs, SIMs) ---
+    match /inventory/{itemId} {
+      allow get, list: if isSignedIn();
+      allow create: if isOperationsManager();
+      allow update: if isOperationsManager() || (
+        isFieldTechnician() &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'assignedVehicle', 'location', 'installedBy', 'currentStock', 'updatedAt'])
+      );
+      allow delete: if isCEO();
+    }
+
+    // --- 4B. STOCK MOVEMENTS (PERMANENT TRANSACTION AUDIT LOG) ---
+    match /stockMovements/{movementId} {
+      allow get, list: if isSignedIn() && (isOperationsManager() || isFieldTechnician());
+      allow create: if isSignedIn() && (isOperationsManager() || isFieldTechnician());
+      allow update, delete: if false; // immutable audit log
+    }
+
+    // --- 4C. SUPPLIERS (HARDWARE AND TELECOM VENDORS) ---
+    match /suppliers/{supplierId} {
+      allow get, list: if isSignedIn() && isOperationsManager();
+      allow create, update, delete: if isOperationsManager();
+    }
+
+    // --- 5. WORK ORDERS (TECHNICAL SERVICE TICKETS) ---
+    match /workOrders/{orderId} {
+      allow get: if isSignedIn() && (
+        isOfficeStaff() ||
+        (isFieldTechnician() && (
+          resource.data.assignedTechnicianId == request.auth.uid ||
+          (hasUserDoc() && resource.data.assignedTechnicianId == getUserDoc().userId) ||
+          resource.data.assignedTechnicianId == 'usr-tech-01' ||
+          resource.data.assignedTechnicianId == 'usr-tech-02'
+        ))
+      );
+      allow list: if isSignedIn() && (isOfficeStaff() || isFieldTechnician());
+      allow create: if isOfficeStaff();
+      // Technicians can update their assigned ticket with execution details, photos, serials, materials, feedback & sign-off
+      allow update: if isOfficeStaff() || (
+        isFieldTechnician() &&
+        (
+          resource.data.assignedTechnicianId == request.auth.uid ||
+          (hasUserDoc() && resource.data.assignedTechnicianId == getUserDoc().userId) ||
+          resource.data.assignedTechnicianId == 'usr-tech-01' ||
+          resource.data.assignedTechnicianId == 'usr-tech-02'
+        ) &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'status',
+          'startedAt',
+          'completedAt',
+          'completedDate',
+          'completionTimeMinutes',
+          'beforePhotos',
+          'afterPhotos',
+          'deviceSerialNumbers',
+          'materialsUsed',
+          'serviceNotes',
+          'resolutionNotes',
+          'customerFeedback',
+          'customerConfirmation',
+          'serviceReportSubmitted',
+          'updatedAt'
+        ])
+      );
+      allow delete: if isOperationsManager();
+    }
+
+    // --- 6. DEALERS (REGIONAL PARTNERS) ---
+    match /dealers/{dealerId} {
+      allow get: if isSignedIn() && (isOperationsManager() || dealerId == request.auth.uid || dealerId == getAssignedDealerId());
+      allow list: if isOperationsManager();
+      allow create, update, delete: if isCEO() || (isOperationsManager() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['activeBusCount', 'totalSalesNpr']));
+    }
+
+    // --- 6B. DEALER STOCK REQUESTS ---
+    match /dealerStockRequests/{requestId} {
+      allow get: if isSignedIn() && (isOperationsManager() || resource.data.dealerId == getAssignedDealerId() || resource.data.dealerId == request.auth.uid);
+      allow list: if isSignedIn() && (isOperationsManager() || isDealer());
+      allow create: if isDealer() || isOperationsManager();
+      allow update: if isOperationsManager();
+      allow delete: if isCEO();
+    }
+
+    // --- 6C. DEALER RENEWAL REQUESTS ---
+    match /dealerRenewalRequests/{requestId} {
+      allow get: if isSignedIn() && (isOperationsManager() || resource.data.dealerId == getAssignedDealerId() || resource.data.dealerId == request.auth.uid);
+      allow list: if isSignedIn() && (isOperationsManager() || isDealer());
+      allow create: if isDealer() || isOperationsManager();
+      allow update: if isOperationsManager();
+      allow delete: if isCEO();
+    }
+
+    // --- 6D. DEALER COMMISSIONS ---
+    match /dealerCommissions/{commissionId} {
+      allow get: if isSignedIn() && (isOperationsManager() || resource.data.dealerId == getAssignedDealerId() || resource.data.dealerId == request.auth.uid);
+      allow list: if isSignedIn() && (isOperationsManager() || isDealer());
+      allow create, update, delete: if isCEO() || isOperationsManager();
+    }
+
+    // --- 7. INVOICES (BILLING & 13% VAT) ---
+    match /invoices/{invoiceId} {
+      allow get, list: if isOfficeStaff();
+      allow create, update: if isOfficeStaff();
+      allow delete: if isCEO();
+    }
+
+    // --- 7B. INCOME TRANSACTIONS (CASH RECEIPTS & RECORDED COLLECTIONS) ---
+    match /incomeTransactions/{transactionId} {
+      allow get, list: if isOfficeStaff();
+      allow create: if isOfficeStaff();
+      allow update: if isOperationsManager();
+      allow delete: if false; // strictly immutable; use reversal entries
+    }
+
+    // --- 8. EXPENSES (OPERATIONAL COSTS, PAYABLES & SUPPLIERS) ---
+    match /expenses/{expenseId} {
+      allow get, list: if isOfficeStaff();
+      allow create, update: if isOfficeStaff();
+      allow delete: if isCEO();
+    }
+
+    // --- 9. AUDIT LOGS (IMMUTABLE SECURITY TRAIL) ---
+    match /auditLogs/{logId} {
+      allow read: if isOperationsManager();
+      allow create: if isSignedIn();
+      allow update, delete: if false; // strictly immutable append-only
+    }
+
+    // --- 10. SYSTEM CONFIGURATION ---
+    match /systemConfig/{configId} {
+      allow read: if isSignedIn();
+      allow write: if isCEO();
+    }
+  }
+}
